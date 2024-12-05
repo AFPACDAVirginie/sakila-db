@@ -135,6 +135,22 @@ LEFT JOIN rental ON inventory.inventory_id=rental.inventory_id
 WHERE rental.inventory_id IS null;
 -- Sélectionnez l'adresse du magasin qui a le plus de films de science fiction en stock.
 -->
-
+SELECT store.store_id, address.*, COUNT(DISTINCT inventory.film_id) AS sci_fi_count
+FROM inventory
+INNER JOIN film ON inventory.film_id = film.film_id
+INNER JOIN film_category ON film.film_id = film_category.film_id
+INNER JOIN category ON film_category.category_id = category.category_id 
+INNER JOIN store ON inventory.store_id  = store.store_id
+INNER JOIN address ON store.address_id = address.address_id
+WHERE category.name = 'Sci-Fi'
+GROUP BY store.store_id,address.district 
+ORDER BY sci_fi_count DESC
+LIMIT 1;
 -- Sélectionnez le nom et le prénom ainsi que la somme totale dépensée du client qui a le plus dépensé.
 -->
+SELECT SUM( payment.amount) AS payment_count, customer.customer_id, customer.first_name, customer.last_name
+FROM `payment`
+INNER JOIN customer ON payment.customer_id=customer.customer_id
+GROUP BY payment.customer_id
+ORDER BY payment_count DESC
+LIMIT 1;
