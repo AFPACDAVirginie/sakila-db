@@ -158,59 +158,29 @@ SET @p0='1'; SET @p1='ACADEMY DINOSAUR'; SELECT `is_film_in_inventory`(@p0, @p1)
 --
 -- Ci-dessous la déclaration de la procédure et des indices sur le développement
 
-DELIMITER $$ 
-CREATE PROCEDURE sakila.most_rented_films(OUT result TEXT)
+CREATE FUNCTION sakila.most_rented_films()
+RETURNS TEXT 
 BEGIN
     -- Vous allez utiliser un curseur pour passer en revue les résultats d'une requête
-    
+    -- Voici un tutoriel sur le fonctionnement des curseurs en MySQL : https://waytolearnx.com/2019/11/les-curseurs-dans-mysql.html
 
     -- Les étapes de l'algorithme à développer sont :
     -- 1 déclaration des variables qui seront utilisées
-    DECLARE done INT DEFAULT 0;
-    DECLARE film_title TEXT;
-    SET result = '';
-    -- DECLARE result TEXT DEFAULT '';
+
     -- 2 Déclaration du curseur avec la requête répondant au besoin (vous avez peut être déjà fait cette requête :) )
-    DECLARE cur CURSOR FOR 
-        SELECT f.title
-        FROM film f
-        JOIN inventory i ON f.film_id = i.film_id
-        JOIN rental r ON i.inventory_id = r.inventory_id
-        GROUP BY f.title
-        ORDER BY COUNT(r.rental_id) DESC
-        LIMIT 3;
+
     -- 3 Boucle qui permettra de passer en revue les résultat de la requête et constuire la chaîne de caractère résultat
-    DECLARE CONTINUE HANDLER FOR NOT FOUND SET done = 1;
-    OPEN cur;
-    read_loop: LOOP
-        FETCH cur INTO film_title;
-        IF done THEN
-            LEAVE read_loop;
-        END IF;
 
     -- 4 retour de la chaîne de caractères résultat
-     IF result = '' THEN
-            SET result = film_title; -- Pas de virgule pour le premier titre
-        ELSE
-            SET result = CONCAT(result, ', ', film_title); -- Ajout de la virgule pour les suivants
-        END IF;
-    -- SET result = CONCAT(result, film_title);
-    -- IF done = 0 THEN
-    --         SET result = CONCAT(result, ', ');
-    --     END IF;
-    END LOOP;
-    CLOSE cur;
-    
-END $$
+end
 
-DELIMITER ;
-
-DELIMITER
-    $$
+-- procédure qui renvoie "null"
+DELIMITER $$
 CREATE PROCEDURE sakila.most_rented_films_1(OUT result TEXT)
 BEGIN
     DECLARE
-        done INT DEFAULT 0 ; DECLARE film_title TEXT ; DECLARE result TEXT DEFAULT '' ; 
+        done INT DEFAULT 0 ; DECLARE film_title TEXT ; DECLARE result TEXT DEFAULT '' ; --=> la déclaration du result ici renvoie la valeur null, il faut 
+        -- l'initialiser entre declare continue handler... et open cur
     DECLARE cur CURSOR FOR
     SELECT
         f.title
@@ -244,9 +214,114 @@ CLOSE cur ;
 END$
 
 DELIMITER ;
+
+-- même code en fonction, renvoie le bon résultat
+CREATE FUNCTION sakila.most_rented_films_1()
+RETURNS TEXT
+BEGIN
+    DECLARE done INT DEFAULT 0;
+    DECLARE film_title TEXT;
+    DECLARE result TEXT DEFAULT '';
+    DECLARE cur CURSOR FOR
+    SELECT
+        f.title
+    FROM
+        film f
+    JOIN inventory i ON
+        f.film_id = i.film_id
+    JOIN rental r ON
+        i.inventory_id = r.inventory_id
+    GROUP BY
+        f.title
+    ORDER BY
+        COUNT(r.rental_id) DESC
+    LIMIT 3;
+    DECLARE CONTINUE HANDLER FOR NOT FOUND SET done = 1;
+
+    OPEN cur;
+
+    read_loop: LOOP
+        FETCH cur INTO film_title;
+        IF done THEN
+            LEAVE read_loop;
+        END IF;
+
+        IF result IS NOT NULL AND result != '' THEN
+            SET result = CONCAT(result, ', ');
+        END IF;
+        
+        SET result = CONCAT(result, film_title);
+    END LOOP;
+
+    CLOSE cur;
+
+    RETURN result;
+END;
+
+-- procédure avec débogage, fonctionne car l'initialisation du result est déplacé au bon endroit
+BEGIN
+    DECLARE
+        done INT DEFAULT 0 ; 
+    DECLARE film_title TEXT ; 
+    DECLARE cur CURSOR FOR
+    SELECT
+        f.title
+    FROM
+        film f
+    JOIN inventory i ON
+        f.film_id = i.film_id
+    JOIN rental r ON
+        i.inventory_id = r.inventory_id
+    GROUP BY
+        f.title
+    ORDER BY
+        COUNT(r.rental_id)
+    DESC
+LIMIT 2 ; 
+DECLARE CONTINUE HANDLER FOR NOT FOUND SET done = 1 ; 
+SET result = ''; --=>il faut initialiser le résultat ici 
+OPEN cur ; 
+read_loop: LOOP 
+	FETCH cur INTO film_title ; 
+    IF done THEN LEAVE read_loop ;
+	END IF ; 
+    SELECT film_title AS "Titre récupéré";
+    IF result IS NOT NULL AND result != '' THEN
+            SET result = CONCAT(result, ', ');
+        END IF;
+
+        
+        SET result = CONCAT(result, film_title);
+        SELECT result AS "Résultat intermédiaire";
+END LOOP ; 
+CLOSE cur ;
+SELECT result AS "Résultat final";
+END
 -----------------------------------------------------------------------------------------------
 -----------------------------------------------------------------------------------------------
 
 
 -- Ecrire une procédure qui renvoie la médiane de la durée des films
 -- Indice sur le développement : https://www.1keydata.com/fr/sql/sql-mediane.php
+-- requête :
+SELECT length median FROM 
+(SELECT l1.film_id, l1.length, COUNT(l1.length) Rank
+ FROM `film` l1, `film` l2
+ WHERE l1.length < l2.length OR (l1.length = l2.length AND l1.film_id <= l2.film_id)
+ GROUP BY l1.film_id, l1.length
+ ORDER BY l1.length DESC) l3
+ WHERE Rank  = (SELECT (COUNT(*)+1) DIV 2 FROM `film`);
+--   retourne median = 114
+-- procédure median_length sans paramètres
+BEGIN
+
+SELECT length AS median 
+FROM (
+SELECT l1.film_id, l1.length, COUNT(l1.length) AS Rank
+ FROM `film` l1, `film` l2
+ WHERE l1.length < l2.length OR (l1.length = l2.length AND l1.film_id <= l2.film_id)
+ GROUP BY l1.film_id, l1.length
+ ORDER BY l1.length DESC) AS l3
+ WHERE Rank  = (SELECT (COUNT(*)+1) DIV 2 FROM `film`);
+
+END
