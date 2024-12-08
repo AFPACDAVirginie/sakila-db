@@ -209,13 +209,73 @@ BEGIN
             USER()
         );
     END IF;
+    IF OLD.address_id <> NEW.address_id THEN
+        INSERT INTO staff_audit_trail(
+            staff_id,
+            last_name_audit,
+            old_value,
+            new_value,
+            done_by
+        )
+        VALUES(
+            NEW.staff_id,
+            'address_id',
+            OLD.address_id,
+            NEW.address_id,
+            USER()
+        );
+    END IF;
+    IF OLD.email <> NEW.email THEN
+        INSERT INTO staff_audit_trail(
+            staff_id,
+            last_name_audit,
+            old_value,
+            new_value,
+            done_by
+        )
+        VALUES(
+            NEW.staff_id,
+            'email',
+            OLD.email,
+            NEW.email,
+            USER()
+        );
+    END IF;
+    IF OLD.store_id <> NEW.store_id THEN
+        INSERT INTO staff_audit_trail(
+            staff_id,
+            last_name_audit,
+            old_value,
+            new_value,
+            done_by
+        )
+        VALUES(
+            NEW.staff_id,
+            'store_id',
+            OLD.store_id,
+            NEW.store_id,
+            USER()
+        );
+    END IF;
+    IF OLD.password <> NEW.password THEN
+        INSERT INTO staff_audit_trail(
+            staff_id,
+            last_name_audit,
+            old_value,
+            new_value,
+            done_by
+        )
+        VALUES(
+            NEW.staff_id,
+            'password',
+            OLD.password,
+            NEW.password,
+            USER()
+        );
+    END IF;
 
    
 END $$
 DELIMITER
     ;
 
-
-
- insert into staff_audit_trail(`staff_id`, `last_name`, `new_value`, `done_by`) values(NEW.`staff_id`,'FirstName',NEW.FirstName,NEW.created_by);
-	insert into staff_audit_trail(`staff_id`, `last_name`, `new_value`, `done_by`) values(NEW.`staff_id`,'LastName',NEW.LastName,NEW.created_by);
